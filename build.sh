@@ -5,3 +5,4 @@ cd spark-3.0.1-bin-hadoop3.2/
 ./bin/docker-image-tool.sh -r ${IMAGENAME} -p ./kubernetes/dockerfiles/spark/bindings/python/Dockerfile build
 
 printenv pwd
+
