@@ -1,3 +1,0 @@
-FROM jackie/spark-repo/spark:latest
- 
-ADD test /tmp
