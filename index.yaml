@@ -3,6 +3,16 @@ entries:
   spark-thrift-server:
   - apiVersion: v2
     appVersion: 3.1.2
+    created: "2021-09-17T05:37:08.889079189Z"
+    description: A Helm chart for Kubernetes
+    digest: 1ebab229645d0cbe291dccd00c9e9d3a1cf2a39fead3b9c839b2a5a4d94b496f
+    name: spark-thrift-server
+    type: application
+    urls:
+    - https://github.com/jackiefong/helm/releases/download/spark-thrift-server-1.0.3/spark-thrift-server-1.0.3.tgz
+    version: 1.0.3
+  - apiVersion: v2
+    appVersion: 3.1.2
     created: "2021-09-17T05:17:09.148009739Z"
     description: A Helm chart for Kubernetes
     digest: 4460aaa0d2107dbe2449c664d97a5fe1432e80e954959f6be3d9167c17cc9c5a
