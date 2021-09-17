@@ -1,3 +1,0 @@
-echo ${IMAGENAME}
-
-echo $(IMAGENAME)
