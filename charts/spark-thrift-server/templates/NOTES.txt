@@ -1,0 +1,15 @@
+
+##########################
+# Spark Thrift Server UI #
+##########################
+
+Step 1:  kubectl --namespace {{ .Release.Namespace }} port-forward services/{{ include "spark-thrift-server.fullname" . }}-driver 4040:4040
+Step 2:  Visit http://localhost:4040 to view the Spark UI
+
+
+##########################
+#  HIVE JDBC Connection  #
+##########################
+
+Step 1:  kubectl --namespace {{ .Release.Namespace }} port-forward services/{{ include "spark-thrift-server.fullname" . }}-driver 10016:10016
+Step 2:  For hive jdbc connection: jdbc:hive2://localhost:10016
