@@ -5,7 +5,7 @@ This helm chart deploys the Spark Thrift Server.  It creates the service account
 ## Prerequisite
 1.  mySQL or postgreSQL database (For Metastore)
 2.  coreSiteSecret and metastoreSiteSecret (For Metastore)
-     - Metastore requires  /opt/hive-metastore/conf/metastore-site.xml and /opt/hadoop/etc/hadoop/core-site.xml.  The luna-metastore.yaml  volumeMount the two files from AWS Secret Manager (luna-i11-xml-core, luna-i11-xml-metastore).  See  luna-metastore.yaml  volumeMounts for more details.  The example XML file is located at:  https://cmd-sw.visualstudio.com/cmdea/_git/k8-inspire11-hivemetastore?path=%2Fexamples
+     - Metastore requires  /opt/hive-metastore/conf/metastore-site.xml and /opt/hadoop/etc/hadoop/core-site.xml.  The luna-metastore.yaml  volumeMount the two files from AWS Secret Manager (luna-i11-xml-core, luna-i11-xml-metastore).  See  luna-metastore.yaml  volumeMounts for more details.  
 3.  PVC for Spark Thrift Server Driver and Executor checkpoint,see spark.pvc values.yaml for more information (Recommanded size 2Gi for both)
 ---
 ## Helm Chart Values
@@ -24,7 +24,6 @@ __Spark Thrift Server Driver configuration:__
 
 ### How the driver configuration works? ###
 Spark Thrift Server is unlike any other typical k8s deployments, in which the k8s deployment starts the container from the docker image entry point.   Spark Thrift Server uses a script from Spark call spark-submit along with the arguments to initialize the services.  For more information, please refers to:
-https://thermo-cmd.atlassian.net/wiki/spaces/PA/pages/1065943506/Luna+Data+Analytics+Platform+Inspire11+PoC#Spark-Thrift-Server---infrastructure-view
 
 Here is an example of the Spark Thrift Server spark-submit command.
 
@@ -61,13 +60,13 @@ There are many supported Spark configurations, and the helm chart organizes them
 
 | Parameter | Description | Default
 | --- | --- | --- |
-driver.image.repository|image repository|078680276960.dkr.ecr.us-east-1.amazonaws.com/k8s-inspire11-demo-microservice
+driver.image.repository|image repository|k8s-inspire11-demo-microservice
 driver.image.pullPolicy|image pull policy|IfNotPresent
 driver.image.tag| image tag|20210224.4
 driver.env| Env variable|
 driver.resource|Kuberentes Resource setting| default is 6Gi memory and 1 core, `<see values.yaml>`
 driver.tolerations|Kubernetes tolerations setting| default is xlarge, `<see values.yaml>`
-driver.k8s|kubernetes api server url|k8s://https://BD5D2A23B5D462BBD023790897444274.yl4.us-east-1.eks.amazonaws.com
+driver.k8s|kubernetes api server url|k8s:
 driver.spark.jar|spark dependency jar|`<see values.yaml>`
 driver.spark.pvc|pvc for spark thrift server checkpoint, see prerequisite and values.yaml for more information
 driver.spark.hadoop.fs|access S3|`<see values.yaml>`
