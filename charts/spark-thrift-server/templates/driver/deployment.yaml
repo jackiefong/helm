@@ -1,0 +1,174 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "spark-thrift-server.fullname" . }}-driver  
+  labels:
+    app: {{ include "spark-thrift-server.fullname" . }}-driver
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "spark-thrift-server.fullname" . }}-driver  
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: {{ include "spark-thrift-server.fullname" . }}-driver
+    spec:
+      {{- with .Values.driver.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "spark-thrift-server.serviceAccountName" . }}
+      serviceAccount: {{ include "spark-thrift-server.serviceAccountName" . }}
+      {{- with .Values.driver.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | indent 6 }}
+      {{- end }}    
+      {{- with .Values.driver.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+      initContainers:
+        - name: check-required-folder
+          image: "{{ .Values.driver.image.repository }}:{{ .Values.driver.image.tag | default .Chart.AppVersion }}"
+          command:
+            - /bin/sh
+            - '-c'
+            - >-              
+              /usr/bin/python3 /opt/spark/spark-submit-app/s3Init.py {{ .Values.driver.spark.s3logbucket}} {{ .Values.driver.spark.s3endpoint}} || true
+          {{- with .Values.driver.env }}
+          env:
+          {{- toYaml . | nindent 12 }} 
+          {{- end }}
+          {{- if .Values.driver.includeKeyAndSecret }}          
+          {{- tpl (toYaml .Values.driver.s3env) . | nindent 12 }} 
+          {{- end }}          
+        - name: clean-up-orphans-pods
+          image: "{{ .Values.driver.kubectlImage.repository }}:{{ .Values.driver.kubectlImage.tag }}"
+          command:
+            - /bin/sh
+            - '-c'
+            - >-              
+              kubectl delete pod -l app={{ include "spark-thrift-server.fullname" . }}-exec -n {{ .Values.driver.spark.namespace}}
+        - name: clean-up-orphans-configmap
+          image: "{{ .Values.driver.kubectlImage.repository }}:{{ .Values.driver.kubectlImage.tag }}"
+          command:
+            - /bin/sh
+            - '-c'
+            - >-              
+              for pod in $(kubectl get configmap --output=jsonpath={.items..metadata.labels.spark-app-selector} -l spark-role=executor -n {{ .Values.driver.spark.namespace}}); \
+                do echo Checking $pod && \
+                existingpod=$(kubectl get pod -l spark-app-selector=$pod --output=name -n {{ .Values.driver.spark.namespace}}); \
+                if [ -z "$existingpod" ]; then kubectl delete configmap -l spark-app-selector=$pod -n {{ .Values.driver.spark.namespace}} ; fi \
+              done
+        - name: wait-for-metastore
+          image: "{{ .Values.driver.busyboxImage.repository }}:{{ .Values.driver.busyboxImage.tag }}"
+          command:
+            - /bin/sh
+            - '-c'
+            - >-
+              until nc -zv {{ include "spark-thrift-server.fullname" . }}-metastore 9083 -w1; do echo 'waiting for metastore'; sleep 1;
+              done
+      containers:
+        - name: {{ include "spark-thrift-server.fullname" . }}-driver
+          image: "{{ .Values.driver.image.repository }}:{{ .Values.driver.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.driver.image.pullPolicy }}
+          resources:
+          {{- toYaml .Values.driver.resources | nindent 12 }}            
+          {{- if .Values.driver.env }}
+          env:
+          {{- tpl (toYaml .Values.driver.env) . | nindent 12 }} 
+          {{- end }}
+          {{- if .Values.driver.includeKeyAndSecret }}          
+          {{- tpl (toYaml .Values.driver.s3env) . | nindent 12 }} 
+          {{- end }}
+          ports:
+            - name: driver-rpc-port
+              containerPort: 7078
+              protocol: TCP
+            - name: blockmanager
+              containerPort: 7079
+              protocol: TCP
+            - name: spark-ui
+              containerPort: 4040
+              protocol: TCP
+            - name: spark-thrift
+              containerPort: 10000
+              protocol: TCP          
+            - name: jdbc-port
+              containerPort: 10016
+              protocol: TCP
+          args:
+            - /opt/spark/bin/spark-submit
+            - --master 
+            - {{ .Values.driver.k8s }}
+            - --deploy-mode 
+            - client
+            - --name 
+            - {{ include "spark-thrift-server.fullname" . }}
+            - --class 
+            - thermo.luna.hive.SparkThriftServerRunner
+            - --conf 
+            - spark.kubernetes.executor.label.app={{ include "spark-thrift-server.fullname" . }}-exec
+            - --conf
+            - spark.kubernetes.authenticate.driver.serviceAccountName={{ include "spark-thrift-server.serviceAccountName" . }}        
+            - --conf
+            - spark.driver.extraJavaOptions="-Divy.cache.dir=/tmp -Divy.home=/tmp"
+            - --conf
+            - spark.driver.host={{ include "spark-thrift-server.fullname" . }}-driver-headless      
+            - --conf
+            - spark.driver.port=7078
+            - --conf
+            - spark.driver.blockManager.port=7079
+            - --conf
+            - spark.kubernetes.container.image.pullPolicy={{ .Values.driver.image.pullPolicy }}
+            - --conf
+            - spark.kubernetes.container.image={{ .Values.driver.image.repository }}:{{ .Values.driver.image.tag | default .Chart.AppVersion }}
+            {{- if .Values.driver.spark.kubernetes.resource }}{{- tpl (toYaml .Values.driver.spark.kubernetes.resource) . | nindent 12 }}{{- end }}
+            {{ if .Values.driver.includeKeyAndSecret }}{{- tpl (toYaml .Values.driver.spark.kubernetes.executor.secretKeyRef) . | nindent 12 }}{{- end }}
+            {{- if .Values.driver.spark.pvc }}{{- tpl (toYaml .Values.driver.spark.pvc) . | nindent 12 }}{{- end }}
+            - --conf
+            - spark.hadoop.hive.metastore.uris=thrift://{{ include "spark-thrift-server.fullname" . }}-metastore:9083        
+            {{- if .Values.driver.spark.hadoop.hive }}{{- tpl (toYaml .Values.driver.spark.hadoop.hive) . | nindent 12 }}{{- end }}
+            {{- if .Values.driver.spark.hadoop.fs }}{{- tpl (toYaml .Values.driver.spark.hadoop.fs) . | nindent 12 }}{{- end }}
+            {{- if .Values.driver.spark.hadoop.fsconfig }}{{- tpl (toYaml .Values.driver.spark.hadoop.fsconfig ) . | nindent 12 }}{{- end }}
+            {{- if .Values.driver.spark.metricconfig }}{{- tpl (toYaml .Values.driver.spark.metricconfig) . | nindent 12 }}{{- end }}
+            {{- if .Values.driver.spark.datalakeconfig }}{{- tpl (toYaml .Values.driver.spark.datalakeconfig) . | nindent 12 }}{{- end }}
+            {{- if .Values.driver.spark.kubernetes.resource }}{{- tpl (toYaml .Values.driver.spark.kubernetes.resource) . | nindent 12 }}{{- end }}
+            {{- if not .Values.driver.includeKeyAndSecret}}
+            - --conf
+            - spark.hadoop.fs.s3a.aws.credentials.provider={{ .Values.driver.s3Provider}}
+            {{- end }}
+            {{- if .Values.driver.imagePullSecrets}}
+            - --conf
+            - spark.kubernetes.container.image.pullSecrets={{ with index .Values.driver.imagePullSecrets 0 }}{{ .name }} {{ end }}
+            {{- end }}
+            {{- if .Values.driver.spark.customconfig }}{{- tpl (toYaml .Values.driver.spark.customconfig) . | nindent 12 }}{{- end }}
+            - --conf
+            - spark.jars={{ .Values.driver.spark.jar }}
+            - local:///opt/spark/spark-submit-app/spark-thrift-server-1.0.0-SNAPSHOT-spark-job.jar
+            {{- if .Values.driver.spark.hiveconf }}{{- tpl (toYaml .Values.driver.spark.hiveconf ) . | nindent 12 }}{{- end }}                      
+{{- if .Values.historyserver.enabled }}
+        - name: {{ include "spark-thrift-server.fullname" . }}-historyserver
+          image: "{{ .Values.driver.image.repository }}:{{ .Values.driver.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.driver.image.pullPolicy }}
+          env:
+            - name: SPARK_HISTORY_OPTS
+              value: -Dspark.history.fs.logDirectory={{ .Values.driver.spark.s3logbucket}}/eventLogFolder -Dspark.hadoop.fs.s3a.endpoint={{ .Values.driver.spark.s3endpoint}} -Dspark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem -Dspark.hadoop.fs.s3a.path.style.access=true {{ if not .Values.driver.includeKeyAndSecret}}-Dspark.hadoop.fs.s3a.aws.credentials.provider=com.amazonaws.auth.WebIdentityTokenCredentialsProvider{{end}}
+          {{- if .Values.driver.env }}          
+          {{- tpl (toYaml .Values.driver.env) . | nindent 12 }} 
+          {{- end }}
+          {{- if .Values.driver.includeKeyAndSecret }}          
+          {{- tpl (toYaml .Values.driver.s3env) . | nindent 12 }} 
+          {{- end }}          
+          command:
+            - "/bin/bash"
+            - "-c"
+            - "/opt/spark/sbin/start-history-server.sh&&tail -f /opt/spark/logs/*history*"
+          ports:
+            - name: history-port
+              containerPort: 18080
+              protocol: TCP
+{{- end }}            
+      restartPolicy: Always
