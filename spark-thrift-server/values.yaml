@@ -1,0 +1,231 @@
+# Default values for spark-thrift-server.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+nameOverride: ""
+fullnameOverride: ""
+
+##  
+# Service Account and RBAC
+##
+# The helm chart will auto create and use the service account/rbac, keep setting to true
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+rbac:
+  create: true
+##  
+# metastore configuration  
+##
+historyserver:
+  enabled: false
+metastore:
+  # Init Schema (only for the first time setup)
+  replicaCount: 1
+  initSchema:
+    # Set to false after init schema (Doesn't hurt if you keep enable to true, but it will create a Kubernetes job)
+    enabled: false
+    # Current dbtype mysql or postgres (Required)
+    dbType: "postgres"
+    # DB username (Required)
+    userName: "postgres"
+    # jdbc url (Required)
+    url: "jdbc:postgresql://postgresql:5432/metastore_db?useSSL=false"
+    # the job setup to use DB_PASSWORD as env variable for the database password (Required)
+    env:
+      - name: DB_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgresql-default-external
+            key: postgresql-password
+  busyboxImage:
+    repository:  common-docker-org-remote.external.jfrog.thermofisher.com/busybox
+    tag: "1.34.0"  
+  image:  
+    repository: 078680276960.dkr.ecr.us-east-1.amazonaws.com/k8-inspire11-hivemetastore
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  # The Secret for core site and metastore site xml, currently metastore supports mysql and postgresql (Required)
+  coreSiteSecret: metastore-luna-i11-xml-metastore-external
+  metastoreSiteSecret: metastore-luna-i11-xml-core-external
+  nodeSelector: {}
+  tolerations: {}
+  # - key: "xlarge"
+  #   operator: "Equal"
+  #   value: "true"
+  #   effect: "NoSchedule"
+  resources:
+    requests:
+      memory: "500Mi"
+      cpu: 500m
+    limits:
+      memory: "1024Mi"
+      cpu: 1      
+  # Env variable, such as AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+  env: {}
+
+##  
+# Spark Thrift Server configuration  
+##
+driver:
+  includeKeyAndSecret: false # when true, please eprovide s3env setting
+  s3Provider: com.amazonaws.auth.WebIdentityTokenCredentialsProvider
+  kubectlImage:
+    repository:  common-docker-org-remote.external.jfrog.thermofisher.com/bitnami/kubectl
+    tag: "1.18.19"
+  busyboxImage:
+    repository:  common-docker-org-remote.external.jfrog.thermofisher.com/busybox
+    tag: "1.34.0"
+  image:
+    repository:  078680276960.dkr.ecr.us-east-1.amazonaws.com/k8s-inspire11-demo-microservice
+    pullPolicy: IfNotPresent
+    tag: "3.0.1"
+  imagePullSecrets: {}
+  # Kubernetes api server url (required)  
+  k8s: "k8s://https://kubernetes.default.svc"
+  # Env variable for the cronjob, for example, if the job files are at s3, include env variable such as AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+  env:  {}
+  s3env:  {}
+  # - name: AWS_ACCESS_KEY_ID
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: aws-luna-inspire11-access-external
+  #       key: luna-i11-s3-access
+  # - name: AWS_SECRET_ACCESS_KEY
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: aws-luna-inspire11-secret-external
+  #       key: luna-i11-s3-secret   
+  # Resource and Limit for the Spark Thrift Server (It is important to set the same spark.driver.cores and  spark.driver.memory under "spark.kubernets.resource" below)
+  # For Spark Thrift Server, anything under 4Gi memory will not work.  
+  resources:
+    limits:
+      memory: 6Gi
+    requests:
+      cpu: '1'
+      memory: 6Gi  
+  nodeSelector: {}
+  tolerations: {}
+  spark:
+    # Custome config to include (not required)
+    customconfig:
+      #- --conf
+      #- spark.sql.thriftServer.incrementalCollect=true
+      # - spark.eventLog.dir=s3a://k8s-luna-multi-tenant-dev-cmd-inspire11-bucket/eventLogFolder
+      # - --conf
+      # - spark.eventLog.enabled=true      
+    # PVC for Spark Thrift Server checkpoint.  Since we can use different PV , it is required to setup the pvc "spark-thrift-server-driver-checkpoint" and "spark-thrift-server-exec-checkpoint" as prerequisite. (Required)
+    datalakeconfig:
+      # custom config for performance tuning
+      - --conf
+      - spark.sql.thriftServer.incrementalCollect=true
+      - --conf
+      - spark.scheduler.pool=stspool
+      - --conf
+      - spark.scheduler.mode=FAIR
+      - --conf
+      - spark.scheduler.allocation.file=/opt/spark/spark-submit-app/scheduler.xml
+      - --conf
+      - spark.sql.broadcastTimeout=2000
+      - --conf
+      - spark.sql.shuffle.partitions=13
+    metricconfig:
+      # Setting for monitoring
+      - --conf
+      -  spark.metrics.namespace="datalake"
+      - --conf
+      - spark.ui.prometheus.enabled=true
+      - --conf
+      - spark.metrics.staticSources.enabled=true
+      - --conf
+      - spark.metrics.appStatusSource.enabled=true 
+    hiveconf:
+      - --hiveconf
+      - hive.server2.authentication=CUSTOM
+      - --hiveconf
+      - hive.server2.custom.authentication.class=thermo.luna.hive.SecretAuthenticator
+      - --hiveconf
+      - hive.exec.stagingdir=/runtime/tmp
+      - --hiveconf
+      - hive.exec.scratchdir=/runtime/tmp 
+    pvc:
+      # Dynamic pvc setting
+      - --conf
+      - spark.kubernetes.executor.volumes.persistentVolumeClaim.spark-local-dir-localdirpvc.mount.path=/localdir
+      - --conf
+      - spark.kubernetes.executor.volumes.persistentVolumeClaim.spark-local-dir-localdirpvc.mount.readOnly=false
+      - --conf
+      - spark.kubernetes.executor.volumes.persistentVolumeClaim.spark-local-dir-localdirpvc.mount.subPath=localdir
+      - --conf
+      - spark.kubernetes.executor.volumes.persistentVolumeClaim.spark-local-dir-localdirpvc.options.claimName=OnDemand
+      - --conf
+      - spark.kubernetes.executor.volumes.persistentVolumeClaim.spark-local-dir-localdirpvc.options.storageClass=default
+      - --conf
+      - spark.kubernetes.executor.volumes.persistentVolumeClaim.spark-local-dir-localdirpvc.options.sizeLimit=200Gi
+    kubernetes:
+      # config spark resources, such as executor instance, memory and cores. Please refer to : https://spark.apache.org/docs/3.0.0-preview/configuration.html for more information
+      resource:
+        - --conf
+        - spark.kubernetes.namespace=luna-inspire11
+        - --conf
+        - spark.driver.cores=1
+        - --conf
+        - spark.driver.memory=6G        
+        - --conf
+        - spark.executor.instances=1        
+        - --conf
+        - spark.executor.memory=2G
+        - --conf
+        - spark.executor.cores=1    
+      executor:
+        # the secret reference for the executor, for example, AWS_ACCESS_KEY_ID
+        secretKeyRef:
+          - --conf
+          - spark.kubernetes.executor.secretKeyRef.AWS_ACCESS_KEY_ID=aws-luna-inspire11-access-external:luna-i11-s3-access
+          - --conf
+          - spark.kubernetes.executor.secretKeyRef.AWS_SECRET_ACCESS_KEY=aws-luna-inspire11-secret-external:luna-i11-s3-secret   
+    hadoop:
+       # config to access S3
+      fs:
+        - --conf
+        - spark.hadoop.fs.s3a.connection.ssl.enabled=false        
+        - --conf
+        - spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem
+        - --conf
+        - spark.hadoop.fs.s3a.fast.upload=true
+        - --conf
+        - spark.hadoop.fs.s3a.path.style.access=true
+      fsconfig:
+        - --conf
+        - spark.hadoop.fs.s3a.endpoint=http://s3.amazonaws.com
+        - --conf
+        - spark.hadoop.fs.defaultFS=s3a://k8s-luna-multi-tenant-dev-cmd-inspire11-bucket
+        - --conf
+        - spark.kubernetes.file.upload.path=s3a://k8s-luna-multi-tenant-dev-cmd-inspire11-bucket/spark-thrift-server
+        - --conf
+        - spark.sql.warehouse.dir=s3a://k8s-luna-multi-tenant-dev-cmd-inspire11-bucket/warehouse       
+      # config for hive
+      hive:
+        - --conf
+        - spark.hadoop.metastore.catalog.default=spark
+        - --conf
+        - spark.hadoop.hive.metastore.client.connect.retry.delay=5
+        - --conf
+        - spark.hadoop.hive.metastore.client.socket.timeout=1800        
+        - --conf
+        - spark.hadoop.hive.server2.thrift.http.port=10002
+        - --conf
+        - spark.hadoop.hive.server2.thrift.port=10016
+        - --conf
+        - spark.hadoop.hive.server2.transport.mode=binary
+        - --conf
+        - spark.hadoop.hive.execution.engine=spark
+        - --conf
+        - spark.hadoop.hive.input.format=io.delta.hive.HiveInputFormat
+        - --conf
+        - spark.hadoop.hive.tez.input.format=io.delta.hive.HiveInputFormat     
+    # dependency jar file
+    # jar: "https://tf-luna.s3.amazonaws.com/spark-thrift-server/jars/delta-hive-assembly_2.12-0.2.0.jar"
+        
