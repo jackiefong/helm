@@ -20,7 +20,7 @@ serviceAccount.create|if a Kubernetes ServiceAccount is created|true
 rbac.create|Create|if Kubernetes RBAC resources are created|true
 schedule|crontab schedule for the job, for more information, try:[ http://crontab.guru](https://crontab.guru/) | "* 1 * * *"
 ---
-__Spark Thrift Server Driver configuration:__
+__Spark Thrift Server Driver configuration:__ 
 
 ### How the driver configuration works? ###
 Spark Thrift Server is unlike any other typical k8s deployments, in which the k8s deployment starts the container from the docker image entry point.   Spark Thrift Server uses a script from Spark call spark-submit along with the arguments to initialize the services.
