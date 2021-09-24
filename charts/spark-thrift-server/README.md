@@ -5,7 +5,7 @@ This helm chart deploys the Spark Thrift Server.  It creates the service account
 ## Prerequisite
 1.  mySQL or postgreSQL database (For Metastore)
 2.  coreSiteSecret and metastoreSiteSecret (For Metastore)
-     - Metastore requires  /opt/hive-metastore/conf/metastore-site.xml and /opt/hadoop/etc/hadoop/core-site.xml.  The luna-metastore.yaml  volumeMount the two files from AWS Secret Manager (luna-i11-xml-core, luna-i11-xml-metastore). 
+     - Metastore requires  /opt/hive-metastore/conf/metastore-site.xml and /opt/hadoop/etc/hadoop/core-site.xml.
 3.  PVC for Spark Thrift Server Driver and Executor checkpoint,see spark.pvc values.yaml for more information (Recommanded size 2Gi for both)
 ---
 ## Helm Chart Values
