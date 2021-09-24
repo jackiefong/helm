@@ -14,11 +14,13 @@ spec:
       labels:
         app: {{ include "spark-thrift-server.fullname" . }}-metastore
     spec:
+      serviceAccountName: {{ include "spark-thrift-server.serviceAccountName" . }}
+      serviceAccount: {{ include "spark-thrift-server.serviceAccountName" . }}
       {{- with .Values.metastore.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}        
-      {{- with .Values.metastore.nodeSelector }}
+      {{- with .Values.metastore.nodeSelector }}      
       nodeSelector:
         {{ toYaml . | indent 6 }}
       {{- end }}    
@@ -33,10 +35,12 @@ spec:
         # post start script to copy secret file to the correct folder.  (K8s secret mount replace all files in a folder)        
         resources:
         {{- toYaml .Values.metastore.resources | nindent 10 }}
+        {{- if .Values.metastore.includeKeyAndSecret }}          
         {{- with .Values.metastore.env }}
         env:
         {{- toYaml . | nindent 10 }} 
-        {{- end }}                          
+        {{- end }}
+        {{- end }}          
         lifecycle:
           postStart:
             exec:
