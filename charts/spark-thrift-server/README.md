@@ -40,7 +40,7 @@ containers:
         - '--name'
         - STS
         - '--class'
-        - thermo.luna.hive.SparkThriftServerRunner
+        - SparkThriftServerRunner
         - '--conf'
         - spark.driver....
         # all of the script param goes here from Helm Values
