@@ -62,7 +62,7 @@ There are many supported Spark configurations, and the helm chart organizes them
 | --- | --- | --- |
 driver.image.repository|image repository|fongjackie/spark
 driver.image.pullPolicy|image pull policy|IfNotPresent
-driver.image.tag| image tag|20210224.4
+driver.image.tag| image tag|3.1.2
 driver.env| Env variable|
 driver.resource|Kuberentes Resource setting| default is 6Gi memory and 1 core, `<see values.yaml>`
 driver.tolerations|Kubernetes tolerations setting| default is xlarge, `<see values.yaml>`
