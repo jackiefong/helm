@@ -1,5 +1,17 @@
 apiVersion: v1
 entries:
   spark-thrift-server:
-    - version: 0.0.0
+  - apiVersion: v2
+    appVersion: 3.1.2
+    created: "2021-09-24T16:47:41.824373516Z"
+    description: A Helm chart for spark-thrift-server init release
+    digest: 0f664c65e8641fa061676899b138fa9bafb0c067f534cae454a192fce90b531c
+    name: spark-thrift-server
+    type: application
+    urls:
+    - https://github.com/jackiefong/helm-charts/releases/download/spark-thrift-server-1.0.0/spark-thrift-server-1.0.0.tgz
+    version: 1.0.0
+  - created: "0001-01-01T00:00:00Z"
+    urls: null
+    version: 0.0.0
 generated: "2021-09-24T12:37:19.9992072-04:00"
