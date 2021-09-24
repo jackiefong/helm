@@ -20,21 +20,16 @@ rbac:
 # metastore configuration  
 ##
 historyserver:
-  enabled: false
+  enabled: true
 metastore:
   includeKeyAndSecret: true
   # Init Schema (only for the first time setup)
   replicaCount: 1
-  initSchema:
-    # Set to false after init schema (Doesn't hurt if you keep enable to true, but it will create a Kubernetes job)
-    enabled: false
-    # Current dbtype mysql or postgres (Required)
-    dbType: "postgres"
-    # DB username (Required)
-    userName: "postgres"
-    # jdbc url (Required)
-    url: "jdbc:postgresql://postgresql:5432/metastore_db?useSSL=false"
-    # the job setup to use DB_PASSWORD as env variable for the database password (Required)
+  initSchema:          
+    enabled: true
+    dbHost: "postgresql"
+    dbPort: "5432"            
+    userName: "postgres"   
     env:
       - name: DB_PASSWORD
         valueFrom:
