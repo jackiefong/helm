@@ -108,7 +108,7 @@ spec:
             - --name 
             - {{ include "spark-thrift-server.fullname" . }}
             - --class 
-            - thermo.luna.hive.SparkThriftServerRunner
+            - jackiefong.hive.SparkThriftServerRunner
             - --conf 
             - spark.kubernetes.executor.label.app={{ include "spark-thrift-server.fullname" . }}-exec
             - --conf
@@ -147,7 +147,7 @@ spec:
             {{- if .Values.driver.spark.customconfig }}{{- tpl (toYaml .Values.driver.spark.customconfig) . | nindent 12 }}{{- end }}
             - --conf
             - spark.jars={{ .Values.driver.spark.jar }}
-            - local:///opt/spark/spark-submit-app/spark-thrift-server-1.0.0-SNAPSHOT-spark-job.jar
+            - local:///opt/spark/spark-submit-app/spark-thrift-server-1.0.0-RELEASE-spark-job.jar
             {{- if .Values.driver.spark.hiveconf }}{{- tpl (toYaml .Values.driver.spark.hiveconf ) . | nindent 12 }}{{- end }}                      
 {{- if .Values.historyserver.enabled }}
         - name: {{ include "spark-thrift-server.fullname" . }}-historyserver

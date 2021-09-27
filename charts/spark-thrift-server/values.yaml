@@ -82,7 +82,7 @@ driver:
   image:
     repository:  fongjackie/spark
     pullPolicy: IfNotPresent
-    tag: "3.1.2"
+    tag: "3.1.2.2021.09.27.1731"
   imagePullSecrets: {}
   # Kubernetes api server url (required)  
   k8s: "k8s://https://kubernetes.default.svc"
@@ -144,9 +144,14 @@ driver:
       - --conf
       - spark.metrics.appStatusSource.enabled=true 
     hiveconf:
+      - --hiveconf
       - hive.exec.stagingdir=/runtime/tmp
       - --hiveconf
       - hive.exec.scratchdir=/runtime/tmp 
+      - --hiveconf
+      - hive.server2.authentication=CUSTOM
+      - --hiveconf
+      - hive.server2.custom.authentication.class=jackiefong.hive.SecretAuthenticator      
     pvc:
       # Dynamic pvc setting
       - --conf
