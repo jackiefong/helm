@@ -11,11 +11,4 @@ entries:
     urls:
     - https://github.com/jackiefong/helm-charts/releases/download/spark-thrift-server-1.0.0/spark-thrift-server-1.0.0.tgz
     version: 1.0.0
-  - apiVersion: v2
-    appVersion: 3.1.2
-    created: "2021-09-24T16:47:41.824373516Z"
-    description: A Helm chart for spark-thrift-server init 
-    name: spark-thrift-server
-    type: application
-    version: 0.0.0
 generated: "2021-09-24T12:37:19.9992072-04:00"
