@@ -14,4 +14,5 @@ entries:
   - created: "0001-01-01T00:00:00Z"
     urls: null
     version: 0.0.0
+    name: spark-thrift-server
 generated: "2021-09-24T12:37:19.9992072-04:00"
