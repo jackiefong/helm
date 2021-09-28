@@ -11,4 +11,7 @@ entries:
     urls:
     - https://github.com/jackiefong/helm-charts/releases/download/spark-thrift-server-1.0.0/spark-thrift-server-1.0.0.tgz
     version: 1.0.0
+  - created: "0001-01-01T00:00:00Z"
+    urls: null
+    version: 0.0.0
 generated: "2021-09-24T12:37:19.9992072-04:00"
